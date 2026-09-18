@@ -1,0 +1,143 @@
+{
+  "name": "ruzgardesk",
+  "version": "2.1.5",
+  "description": "RüzgarDesk - AnyDesk benzeri uzak masaüstü uygulaması (Electron)",
+  "main": "electron/main.js",
+  "author": "Rüzgar Yazılım",
+  "license": "MIT",
+  "scripts": {
+    "server": "node server.js",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "electron-builder --win --x64",
+    "dist:win": "electron-builder --win --x64",
+    "dist:mac": "electron-builder --mac",
+    "dist:mac:arm": "electron-builder --mac --arm64",
+    "dist:mac:x64": "electron-builder --mac --x64",
+    "dist:mac:universal": "electron-builder --mac --universal",
+    "dist:all": "electron-builder -mw",
+    "pack": "electron-builder --dir"
+  },
+  "keywords": [
+    "webrtc",
+    "socket.io",
+    "remote-desktop",
+    "anydesk-clone",
+    "electron"
+  ],
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "express": "^4.19.2",
+    "peerjs": "^1.5.5",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.ruzgar.ruzgardesk",
+    "productName": "RuzgarDesk",
+    "copyright": "Copyright 2026 Ruzgar Yazilim",
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "public/**/*",
+      "server.js",
+      "signaling.js",
+      "!**/*.map"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "RuzgarDesk uzaktan baglanti icin kamera izni kullanabilir.",
+        "NSMicrophoneUsageDescription": "RuzgarDesk uzaktan erisimde ses aktarimi icin mikrofon izni gereklidir.",
+        "NSScreenCaptureUsageDescription": "RuzgarDesk masaustunuzu uzaktan erisime acmak ve paylasmak icin Ekran Kaydi iznine ihtiyac duyar."
+      },
+      "extraResources": [
+        {
+          "from": "electron/macInputAgent.swift",
+          "to": "macInputAgent.swift"
+        }
+      ]
+    },
+    "dmg": {
+      "title": "RuzgarDesk ${version}",
+      "artifactName": "RuzgarDesk-${version}-${arch}.dmg"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "requestedExecutionLevel": "requireAdministrator",
+      "extraResources": [
+        {
+          "from": "cloudflared.exe",
+          "to": "cloudflared.exe"
+        },
+        {
+          "from": "build/RuzgarDeskSecureInput.exe",
+          "to": "RuzgarDeskSecureInput.exe"
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "RuzgarDesk-Portable-${version}.exe",
+      "requestExecutionLevel": "admin"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "include": "build/installer.nsh",
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "RuzgarDesk",
+      "artifactName": "RuzgarDesk-Setup-${version}.exe"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://api.ruzgaryazilim.com.tr/updates"
+      }
+    ]
+  }
+}

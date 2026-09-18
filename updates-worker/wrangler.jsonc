@@ -1,0 +1,18 @@
+{
+  "name": "ruzgardesk-updates",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-08-13",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "api.ruzgaryazilim.com.tr",
+      "custom_domain": true
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "UPDATES",
+      "bucket_name": "ruzgardesk-downloads"
+    }
+  ]
+}

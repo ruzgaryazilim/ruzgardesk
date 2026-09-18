@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RüzgarDesk - Uzak Masaüstü</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Background glowing orbs -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+
+    <!-- MAIN DASHBOARD -->
+    <main id="dashboard-view" class="view active">
+      <header class="app-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <span class="logo-text">RÜZGAR<span>DESK</span></span>
+        </div>
+        <div class="status-badge" id="server-status">
+          <span class="status-dot pinging"></span>
+          <span class="status-label">Connecting to server...</span>
+        </div>
+        <div class="license-badge" id="admin-badge" style="margin-left: 20px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 6px; color: #10b981; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span id="admin-badge-text">Yönetici İzni</span>
+        </div>
+        <div class="version-badge" id="app-version-badge" title="Yüklü RüzgarDesk sürümü">v--- <span>•</span> ---</div>
+        <button class="btn-icon" id="open-settings-btn" title="Ayarlar" style="margin-left:auto;">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </header>
+
+      <div class="dashboard-grid">
+        <!-- Left Panel: Your Access Details -->
+        <section class="card glass-card panel-info">
+          <div class="card-header">
+            <h3>Bu Bilgisayar</h3>
+            <p class="subtitle">Bu ID'yi paylaşarak başkalarının bu makineye erişmesine izin verin.</p>
+          </div>
+          <div class="id-container">
+            <div class="id-display" id="my-desk-id">--- --- ---</div>
+            <button class="btn-icon" id="copy-id-btn" title="Copy Desk ID">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="security-settings">
+            <div class="setting-row">
+              <span class="setting-label">Erişim Parolası</span>
+              <div class="passcode-input-wrapper">
+                <input type="password" id="my-passcode" value="" placeholder="Parola belirleyin">
+                <button class="btn-text-toggle" id="toggle-passcode-view">Göster</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label">Gözetimsiz Erişim</span>
+              <label class="switch">
+                <input type="checkbox" id="unattended-toggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="sandbox-info-alert">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span>Gözetimsiz erişim açıkken, doğru parolayı giren cihazlar onay beklemeden otomatik bağlanır (uzaktaki bilgisayarı başında kimse olmadan yönetmek için).</span>
+          </div>
+        </section>
+
+        <!-- Right Panel: Remote Connection Initiator -->
+        <section class="card glass-card panel-connect">
+          <div class="card-header">
+            <h3>Uzak Bilgisayar</h3>
+            <p class="subtitle">Bağlanmak istediğiniz cihazın Masa ID'sini girin.</p>
+          </div>
+          
+          <div class="connect-form">
+            <div class="input-glow-group">
+              <input type="text" id="target-desk-id" placeholder="9 haneli Masa ID (örn. 123 456 789)" autocomplete="off">
+              <span class="input-focus-line"></span>
+            </div>
+            <div class="input-glow-group">
+              <input type="password" id="target-passcode" placeholder="Parola (gözetimsiz erişim için, opsiyonel)" autocomplete="off">
+              <span class="input-focus-line"></span>
+            </div>
+
+            <button class="btn btn-primary btn-glowing" id="connect-btn">
+              <span>Bağlan</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="recent-connections">
+            <h4>Son Bağlantılar</h4>
+            <ul class="recent-list" id="recent-connections-list">
+              <li class="recent-item empty-state">
+                Henüz bağlantı yok
+              </li>
+            </ul>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- LIVE SESSION VIEW -->
+    <main id="session-view" class="view">
+      <!-- Session Bar -->
+      <nav class="session-bar glass-panel">
+        <div class="session-info">
+          <div class="logo">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <span class="logo-text shrink">RÜZGAR<span>DESK</span></span>
+          </div>
+          <div class="divider"></div>
+          <div class="session-badge">
+            <span class="connection-pill green">BAĞLI</span>
+            <span class="peer-id-label">CİHAZ: <strong id="peer-id-display">--- --- ---</strong></span>
+          </div>
+          <div class="divider"></div>
+          <div class="session-timer" id="session-time">00:00</div>
+        </div>
+
+        <div class="session-toolbar">
+
+          <button class="btn-tool" id="toggle-audio-btn" title="Toggle Audio Stream">
+            <svg id="audio-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+          </button>
+          <button class="btn-tool" id="switch-screen-btn" title="Ekran değiştir" style="display:none; gap:6px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="14" height="10" rx="1.5"/>
+              <path d="M8 18h6M11 14v4"/>
+              <path d="M18 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8"/>
+            </svg>
+            <span id="screen-indicator" style="font-size:12px; font-weight:600;">1/1</span>
+          </button>
+          <button class="btn-tool" id="fullscreen-btn" title="Toggle Fullscreen">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          </button>
+          <div class="divider"></div>
+          <button class="btn btn-danger" id="disconnect-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
+            </svg>
+            <span>Bağlantıyı Kes</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Session Workspace Grid -->
+      <div class="session-workspace">
+        
+        <!-- Left Side: Interactive Area -->
+        <div class="session-viewer-container glass-card" id="remote-display-container">
+          
+          <!-- WebRTC Screen Stream View -->
+          <div class="display-wrapper active" id="webrtc-stream-wrapper">
+            <video id="remote-video" autoplay playsinline></video>
+            <div class="screen-waiting-overlay" id="waiting-screen-share">
+              <div class="loader-spinner"></div>
+              <p id="waiting-text">Karşı tarafın ekranı bekleniyor...</p>
+              <button class="btn btn-secondary" id="request-stream-btn" style="margin-top: 15px;">Ekran Paylaşımı İste</button>
+            </div>
+          </div>
+
+          <!-- Remote Mouse Cursor Overlay (visible on host side for drawing client cursor, or vice versa) -->
+          <div id="remote-pointer" class="remote-cursor">
+            <svg class="cursor-svg" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M3 3l7.07 16.97 2.51-6.62 6.62-2.51L3 3z" fill="#a855f7" stroke="#ffffff" stroke-width="1.5"/>
+            </svg>
+            <span class="cursor-label" id="pointer-label">Viewer</span>
+          </div>
+
+          <!-- Pointer ripples on click -->
+          <div id="ripple-layer" class="ripple-container"></div>
+        </div>
+
+        <!-- Right Side: Chat & File Transfer Sidebar -->
+        <aside class="sidebar-container glass-card" id="session-sidebar">
+          <!-- Sidebar Tabs Navigation -->
+          <div class="sidebar-tabs">
+            <button class="tab-btn active" data-tab="chat">
+              <span>Sohbet (Chat)</span>
+            </button>
+            <button class="tab-btn" data-tab="files">
+              <span>Dosyalar (Files)</span>
+            </button>
+          </div>
+
+          <!-- Chat Section -->
+          <div class="tab-panel active" id="tab-chat">
+            <div class="chat-messages" id="chat-messages-container">
+              <div class="system-message">
+                <span>Güvenli WebRTC oturumu kuruldu. Mesajlar uçtan uca şifrelidir.</span>
+              </div>
+            </div>
+            <div class="chat-input-area">
+              <input type="text" id="chat-input" placeholder="Bir mesaj yazın..." autocomplete="off">
+              <button class="btn btn-primary" id="chat-send-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Files Section -->
+          <div class="tab-panel" id="tab-files">
+            <div class="drop-zone" id="file-drop-zone">
+              <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <p class="drop-title">Dosyaları buraya sürükleyin</p>
+              <p class="drop-subtitle">veya tıklayıp karşı tarafa göndereceğiniz dosyaları seçin</p>
+              <input type="file" id="file-select-input" class="hidden-file-input" multiple>
+            </div>
+
+            <div class="transfer-list-section">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <h4>Aktarılan Dosyalar</h4>
+                <button class="btn-text-toggle" id="open-downloads-btn">İndirilenler klasörü</button>
+              </div>
+              <div class="transfers-container" id="transfers-container">
+                <div class="empty-transfers-label">Henüz dosya aktarılmadı.</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- INCOMING CONNECTION DIALOG MODAL -->
+    <div class="modal-backdrop" id="incoming-modal">
+      <div class="modal glass-card animate-scale-in">
+        <div class="modal-header">
+          <div class="alert-icon-wrapper pulse-red">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h3>Gelen Bağlantı İsteği</h3>
+          <p class="subtitle">Başka bir cihaz bu bilgisayara bağlanıp kontrol etmek istiyor.</p>
+        </div>
+
+        <div class="connection-request-details">
+          <div class="request-row">
+            <span class="detail-label">İsteyen ID</span>
+            <span class="detail-val" id="requester-id-display">123 456 789</span>
+          </div>
+          <div class="request-row">
+            <span class="detail-label">İstenen Mod</span>
+            <span class="detail-val">Uzaktan Kontrol & Ekran Paylaşımı</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="decline-request-btn">Reddet</button>
+          <button class="btn btn-success btn-glowing-green" id="accept-request-btn">Kabul Et & Paylaş</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONNECTION LOADING MODAL -->
+    <div class="modal-backdrop" id="connecting-modal">
+      <div class="modal glass-card align-center">
+        <div class="pulse-loader">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="connecting-icon">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <h3 id="connecting-title" style="margin-top: 25px;">Bağlanıyor...</h3>
+        <p class="subtitle" id="connecting-subtitle">Güvenli uçtan uca bağlantı kuruluyor.</p>
+        <button class="btn btn-secondary btn-sm" id="cancel-connect-btn" style="margin-top: 20px;">Bağlantıyı İptal Et</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="modal-backdrop" id="settings-modal">
+      <div class="modal glass-card animate-scale-in" style="max-width: 560px; text-align:left;">
+        <div class="modal-header" style="text-align:left;">
+          <h3>Ayarlar</h3>
+          <p class="subtitle">Bağlantı otomatiktir — sadece kodu paylaşmanız yeterli.</p>
+        </div>
+
+        <div class="settings-body" style="display:flex; flex-direction:column; gap:18px; margin:10px 0 20px;">
+          <div class="settings-address-box" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <span class="setting-label">Bağlantı durumu</span>
+              <code id="peer-status" style="color:#10b981;">-</code>
+            </div>
+            <p class="subtitle" style="font-size:12px; margin-top:8px;">Uygulama internetteki ortak buluşma sunucusuna otomatik bağlanır. Karşı bilgisayara bağlanmak için sadece onun <strong>Masa ID</strong>'sini girin; herhangi bir adres ayarlamanıza gerek yoktur.</p>
+          </div>
+
+          <div class="settings-address-box" style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:10px; padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+              <div>
+                <span class="setting-label">RüzgarDesk <strong id="settings-version">v---</strong></span>
+                <p class="subtitle" id="update-status" style="font-size:12px; margin-top:5px;">Güncelleme durumu hazırlanıyor...</p>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="check-update-btn" type="button">Şimdi Denetle</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="setting-label" style="display:block; margin-bottom:8px;">Gelişmiş: Özel Sinyal Sunucusu (opsiyonel)</label>
+            <div class="input-glow-group">
+              <input type="text" id="peer-host-input" placeholder="Boş = ücretsiz genel sunucu (önerilir)" autocomplete="off">
+            </div>
+            <p class="subtitle" style="font-size:12px; margin-top:6px;">Kendi PeerJS sunucunuzu kurduysanız <em>host:port</em> yazın (örn. <em>ornek.com:9000</em>). Çoğu kullanıcı bunu boş bırakmalıdır.</p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="close-settings-btn">Kapat</button>
+          <button class="btn btn-success" id="save-settings-btn">Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MACOS PERMISSIONS MODAL -->
+    <div class="modal-backdrop" id="mac-permissions-modal">
+      <div class="modal glass-card animate-scale-in" style="max-width: 540px; text-align:left;">
+        <div class="modal-header" style="text-align:left;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:24px;">🍎</span>
+            <h3 style="margin:0;">macOS Güvenlik ve İzinleri</h3>
+          </div>
+          <p class="subtitle" style="margin-top:6px;">RüzgarDesk'in ekran paylaşımı ve fare/klavye kontrolü yapabilmesi için macOS sistem izinleri gereklidir.</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:14px; margin:16px 0 22px;">
+          <!-- Screen Recording -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div>
+              <div style="font-weight:600; font-size:14px; color:#fff;">1. Ekran Kaydı (Screen Recording)</div>
+              <p class="subtitle" style="font-size:12px; margin-top:3px;">Ekran görüntünüzü karşı tarafa canlı iletmek için şarttır.</p>
+              <div id="mac-perm-screen-status" style="font-size:11px; margin-top:4px; color:#f59e0b; font-weight:600;">● İzin Denetleniyor...</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="mac-req-screen-btn" type="button" style="white-space:nowrap;">Ayarları Aç</button>
+          </div>
+
+          <!-- Accessibility -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div>
+              <div style="font-weight:600; font-size:14px; color:#fff;">2. Erişilebilirlik (Accessibility)</div>
+              <p class="subtitle" style="font-size:12px; margin-top:3px;">Uzaktan gelen fare ve klavye hareketlerini işletim sistemine iletir.</p>
+              <div id="mac-perm-acc-status" style="font-size:11px; margin-top:4px; color:#f59e0b; font-weight:600;">● İzin Denetleniyor...</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="mac-req-acc-btn" type="button" style="white-space:nowrap;">İzin Ver</button>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="close-mac-perms-btn">Kapat</button>
+          <button class="btn btn-success" id="recheck-mac-perms-btn">Tekrar Denetle</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PeerJS (WebRTC) — bundled locally, no CDN -->
+  <script src="vendor/peerjs.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
