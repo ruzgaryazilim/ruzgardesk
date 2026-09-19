@@ -78,9 +78,14 @@ class UacCompatibility {
     this.readPolicy = operations.readPolicy || readPolicy;
     this.writePolicy = operations.writePolicy || writePolicy;
     this.restorePolicy = operations.restorePolicy || restorePolicy;
+    this.injector = operations.injector || null;
     this.active = false;
     this.originalPolicy = null;
     this.watchdog = null;
+  }
+
+  setInjector(injector) {
+    this.injector = injector;
   }
 
   // Recover a policy left behind by an abrupt shutdown or machine restart.
@@ -101,13 +106,23 @@ class UacCompatibility {
     if (this.active) return { ok: true, active: true };
 
     const original = this.readPolicy();
+    let directWriteSucceeded = false;
     try {
       fs.writeFileSync(this.recoveryPath, JSON.stringify(original), { encoding: 'utf8', mode: 0o600 });
       this.writePolicy(0);
+      directWriteSucceeded = true;
     } catch (e) {
+      this.log('[uac][WARN] direct registry write failed (trying SYSTEM service): ' + e.message);
+    }
+
+    if (this.injector && typeof this.injector.setUacPolicy === 'function') {
+      this.injector.setUacPolicy(true);
+    }
+
+    if (!directWriteSucceeded && (!this.injector || !this.injector.secureReady)) {
       try { safeUnlink(this.recoveryPath); } catch (_) {}
-      this.log('[uac][ERROR] could not enable interactive UAC prompts: ' + e.message);
-      return { ok: false, error: e.message };
+      this.log('[uac][ERROR] could not enable interactive UAC prompts: neither direct write nor SYSTEM service succeeded');
+      return { ok: false, error: 'Yönetici yetkisi veya güvenli sistem hizmeti bulunamadı.' };
     }
 
     this.originalPolicy = original;
@@ -120,6 +135,10 @@ class UacCompatibility {
   disableForRemoteSession() {
     if (process.platform !== 'win32') return { ok: true, active: false };
     if (!this.active) return { ok: true, active: false };
+
+    if (this.injector && typeof this.injector.setUacPolicy === 'function') {
+      this.injector.setUacPolicy(false);
+    }
 
     try {
       this.restorePolicy(this.originalPolicy);

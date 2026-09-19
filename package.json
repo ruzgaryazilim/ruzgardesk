@@ -1,6 +1,6 @@
 {
   "name": "ruzgardesk",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "RüzgarDesk - AnyDesk benzeri uzak masaüstü uygulaması (Electron)",
   "main": "electron/main.js",
   "author": "Rüzgar Yazılım",

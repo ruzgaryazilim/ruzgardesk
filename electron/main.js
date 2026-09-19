@@ -45,12 +45,31 @@ const UPDATE_URLS = [
 // Diagnostic log (userData/ruzgardesk.log) — helps troubleshoot the packaged app
 // ---------------------------------------------------------------------------
 let logStream = null;
+function initLogStream() {
+  try {
+    const logPath = path.join(app.getPath('userData'), 'ruzgardesk.log');
+    if (fs.existsSync(logPath)) {
+      const stats = fs.statSync(logPath);
+      if (stats.size > 5 * 1024 * 1024) {
+        // Keep the last 100 KB to avoid uncontrolled log growth
+        const tailSize = 100 * 1024;
+        const buf = Buffer.alloc(tailSize);
+        const fd = fs.openSync(logPath, 'r');
+        const readBytes = fs.readSync(fd, buf, 0, tailSize, Math.max(0, stats.size - tailSize));
+        fs.closeSync(fd);
+        fs.writeFileSync(logPath, buf.subarray(0, readBytes));
+      }
+    }
+    logStream = fs.createWriteStream(logPath, { flags: 'a' });
+  } catch (e) {}
+}
+
 function log(...args) {
   const line = `[${new Date().toISOString()}] ${args.join(' ')}`;
   console.log(line);
   try {
-    if (!logStream) logStream = fs.createWriteStream(path.join(app.getPath('userData'), 'ruzgardesk.log'), { flags: 'a' });
-    logStream.write(line + '\n');
+    if (!logStream) initLogStream();
+    if (logStream) logStream.write(line + '\n');
   } catch (e) {}
 }
 
@@ -107,6 +126,24 @@ function isAdmin() {
   }
 }
 
+function relaunchElevated() {
+  if (process.platform !== 'win32') return false;
+  try {
+    const exe = process.execPath;
+    const psArgs = [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+      `Start-Process -FilePath "${exe}" -Verb RunAs`
+    ];
+    spawn('powershell.exe', psArgs, { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    app.isQuitting = true;
+    setTimeout(() => app.quit(), 500);
+    return true;
+  } catch (e) {
+    log('[elevation] relaunchElevated failed:', e.message);
+    return false;
+  }
+}
+
 // Relaunch the packaged app elevated (UAC prompt). Dev runs stay unelevated so
 // the developer isn't fighting UAC on every `npm start`.
 function ensureAdmin() {
@@ -117,18 +154,7 @@ function ensureAdmin() {
     console.warn('[elevation] not elevated (dev mode) — remote control of admin windows will be limited');
     return true;
   }
-  try {
-    const exe = process.execPath;
-    const psArgs = [
-      '-NoProfile', '-Command',
-      `Start-Process -FilePath "${exe}" -Verb RunAs`
-    ];
-    spawn('powershell.exe', psArgs, { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-  } catch (e) {
-    console.error('[elevation] relaunch failed:', e.message);
-  }
-  app.quit();
-  return false;
+  return relaunchElevated() ? false : true;
 }
 
 // Allow inbound LAN connections through Windows Firewall (best-effort; needs admin).
@@ -482,6 +508,8 @@ function registerIpc() {
     };
   });
 
+  ipcMain.handle('relaunch-elevated', () => relaunchElevated());
+
   ipcMain.handle('request-permissions', async (e, type) => {
     if (process.platform !== 'darwin') return { ok: true, active: true };
     if (type === 'accessibility') {
@@ -761,6 +789,9 @@ if (!gotLock) {
         : path.join(__dirname, '..', 'build', 'RuzgarDeskSecureInput.exe');
       injector = new InputInjector({ secureHelperPath, logger: log });
       injector.start();
+      if (uacCompatibility && typeof uacCompatibility.setInjector === 'function') {
+        uacCompatibility.setInjector(injector);
+      }
 
       setupDisplayCapture();
       await startEmbeddedServer();

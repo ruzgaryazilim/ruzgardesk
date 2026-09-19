@@ -9,6 +9,7 @@ using System.Security.Principal;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace RuzgarDeskSecureInput
 {
@@ -281,8 +282,68 @@ namespace RuzgarDeskSecureInput
         private static double activeWidth = GetSystemMetrics(0);
         private static double activeHeight = GetSystemMetrics(1);
 
+        internal static class UacPolicy
+        {
+            private const string SubKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+            private const string ValueName = "PromptOnSecureDesktop";
+            private static object originalValue = null;
+            private static bool hasOriginal = false;
+            private static readonly object syncLock = new object();
+
+            public static void EnableInteractiveUac()
+            {
+                lock (syncLock)
+                {
+                    try
+                    {
+                        using (RegistryKey key = Registry.LocalMachine.OpenSubKey(SubKey, true))
+                        {
+                            if (key != null)
+                            {
+                                if (!hasOriginal)
+                                {
+                                    originalValue = key.GetValue(ValueName);
+                                    hasOriginal = true;
+                                }
+                                key.SetValue(ValueName, 0, RegistryValueKind.DWord);
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            public static void RestorePolicy()
+            {
+                lock (syncLock)
+                {
+                    try
+                    {
+                        if (hasOriginal)
+                        {
+                            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(SubKey, true))
+                            {
+                                if (key != null)
+                                {
+                                    if (originalValue != null)
+                                        key.SetValue(ValueName, originalValue, RegistryValueKind.DWord);
+                                    else
+                                        key.DeleteValue(ValueName, false);
+                                }
+                            }
+                            hasOriginal = false;
+                            originalValue = null;
+                        }
+                    }
+                    catch { }
+                }
+            }
+        }
+
         internal static void Run()
         {
+            try { AppDomain.CurrentDomain.ProcessExit += (s, e) => UacPolicy.RestorePolicy(); } catch { }
+
             while (true)
             {
                 try
@@ -294,16 +355,49 @@ namespace RuzgarDeskSecureInput
                         PipeAccessRights.FullControl, AccessControlType.Allow));
                     security.AddAccessRule(new PipeAccessRule(
                         new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+                        PipeAccessRights.FullControl, AccessControlType.Allow));
+                    security.AddAccessRule(new PipeAccessRule(
+                        new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null),
                         PipeAccessRights.ReadWrite, AccessControlType.Allow));
+
                     using (NamedPipeServerStream pipe = new NamedPipeServerStream(
-                        "RuzgarDeskSecureInput", PipeDirection.In, 1, PipeTransmissionMode.Byte,
+                        "RuzgarDeskSecureInput", PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
                         PipeOptions.None, 4096, 4096, security))
                     {
                         pipe.WaitForConnection();
-                        using (StreamReader reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true))
+                        try
                         {
-                            string line;
-                            while ((line = reader.ReadLine()) != null) Dispatch(line);
+                            using (StreamWriter writer = new StreamWriter(pipe, new UTF8Encoding(false), 1024, true))
+                            using (StreamReader reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true))
+                            {
+                                writer.WriteLine("RD_READY");
+                                writer.Flush();
+
+                                string line;
+                                while ((line = reader.ReadLine()) != null)
+                                {
+                                    if (line == "UAC_ENABLE")
+                                    {
+                                        UacPolicy.EnableInteractiveUac();
+                                        writer.WriteLine("UAC_OK");
+                                        writer.Flush();
+                                    }
+                                    else if (line == "UAC_DISABLE")
+                                    {
+                                        UacPolicy.RestorePolicy();
+                                        writer.WriteLine("UAC_OK");
+                                        writer.Flush();
+                                    }
+                                    else
+                                    {
+                                        Dispatch(line);
+                                    }
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            UacPolicy.RestorePolicy();
                         }
                     }
                 }

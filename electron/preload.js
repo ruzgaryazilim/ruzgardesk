@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('rdesk', {
   saveConfig: (partial) => ipcRenderer.invoke('save-config', partial),
   checkPermissions: () => ipcRenderer.invoke('check-permissions'),
   requestPermissions: (type) => ipcRenderer.invoke('request-permissions', type),
+  relaunchElevated: () => ipcRenderer.invoke('relaunch-elevated'),
 
   // Silent screen capture (host side)
   getScreenSource: () => ipcRenderer.invoke('get-screen-source'),

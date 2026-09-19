@@ -436,20 +436,47 @@ class InputInjector {
     const pipe = net.createConnection(PIPE_PATH);
     this.securePipe = pipe;
     pipe.setNoDelay(true);
+
+    pipe.on('data', (buf) => {
+      const text = buf.toString();
+      if (text.includes('RD_READY')) {
+        this.secureReady = true;
+        if (!this._loggedSecureReady) {
+          this._loggedSecureReady = true;
+          this.log('[injector] secure SYSTEM input agent ready');
+        }
+        if (this.latestScreenLine) pipe.write(this.latestScreenLine + '\n');
+        for (const line of this.queue) pipe.write(line + '\n');
+        this.queue = [];
+      }
+    });
+
     pipe.once('connect', () => {
       this.secureReady = true;
-      this.log('[injector] connected to secure SYSTEM input agent');
+      if (!this._loggedSecureReady) {
+        this._loggedSecureReady = true;
+        this.log('[injector] connected to secure SYSTEM input agent');
+      }
       if (this.latestScreenLine) pipe.write(this.latestScreenLine + '\n');
     });
-    const disconnected = () => {
+
+    const disconnected = (err) => {
       if (this.securePipe !== pipe) return;
       this.securePipe = null;
       this.secureReady = false;
+      this._loggedSecureReady = false;
+      if (err && !this.stopping) {
+        const msg = err.message || String(err);
+        if (msg !== this._lastPipeError) {
+          this._lastPipeError = msg;
+          this.log('[injector][WARN] secure input pipe disconnected: ' + msg);
+        }
+      }
       if (!this.stopping && !this.secureRetry) {
         this.secureRetry = setTimeout(() => {
           this.secureRetry = null;
           this._connectSecurePipe();
-        }, 1000);
+        }, 1500);
       }
     };
     pipe.once('error', disconnected);
@@ -459,6 +486,13 @@ class InputInjector {
   _write(line) {
     if (this.ps && this.ps.stdin.writable) {
       this.ps.stdin.write(line + '\n');
+    }
+  }
+
+  setUacPolicy(active) {
+    const cmd = active ? 'UAC_ENABLE\n' : 'UAC_DISABLE\n';
+    if (this.secureReady && this.securePipe && this.securePipe.writable) {
+      try { this.securePipe.write(cmd); } catch (e) {}
     }
   }
 
