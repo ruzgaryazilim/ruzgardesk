@@ -53,14 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const sessionTimeLabel = $('session-time');
   const toggleAudioBtn = $('toggle-audio-btn');
   const fullscreenBtn = $('fullscreen-btn');
-  const elevateSessionBtn = $('elevate-session-btn');
   const switchScreenBtn = $('switch-screen-btn');
   const screenIndicator = $('screen-indicator');
   const disconnectSessionBtn = $('disconnect-btn');
-  const elevationModal = $('elevation-modal');
-  const elevationRequesterId = $('elevation-requester-id');
-  const acceptElevationBtn = $('accept-elevation-btn');
-  const declineElevationBtn = $('decline-elevation-btn');
   const remoteDisplayContainer = $('remote-display-container');
   const remoteVideo = $('remote-video');
   const waitingScreenShare = $('waiting-screen-share');
@@ -172,6 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
         adminBadge.title = 'RüzgarDesk yönetici yetkisiyle çalışıyor.';
         adminBadge.onclick = null;
       }
+    }
+
+    if (cfg.unattended && !boot.isAdmin && isElectron && RD.relaunchElevated) {
+      RD.relaunchElevated();
+      return;
     }
 
     initPeer();
@@ -390,6 +390,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (passOk) {
           sessionAuthorizedByPasscode = true;
+          if (!boot.isAdmin && isElectron && RD.relaunchElevated) {
+            try { c.send({ t: 'elevation-relaunching' }); } catch (e) {}
+            setTimeout(() => RD.relaunchElevated(), 400);
+            break;
+          }
           acceptIncoming(c, requester);
         } else {
           sessionAuthorizedByPasscode = false;
@@ -442,47 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerScreenIndex = payload.index || 0;
         updateScreenSwitchUI();
         break;
-      case 'query-elevation':
-        if (isHost) {
-          send({ t: 'elevation-info', isAdmin: !!boot.isAdmin, unattended: !!(cfg.unattended || sessionAuthorizedByPasscode) });
-        }
-        break;
-      case 'elevation-info':
-        if (!isHost && elevateSessionBtn) {
-          elevateSessionBtn.style.display = payload.isAdmin ? 'none' : 'inline-flex';
-          if (payload.unattended) {
-            elevateSessionBtn.title = 'Gözetimsiz erişim aktif: Doğrudan Yönetici Yetkisine yükselt';
-          }
-        }
-        break;
-      case 'request-elevation':
-        if (isHost) {
-          if (boot.isAdmin) {
-            send({ t: 'elevation-info', isAdmin: true });
-            break;
-          }
-          // Gözetimsiz erişim açıksa veya parola ile bağlandıysa onay beklemeden doğrudan yükselt
-          if (cfg.unattended || sessionAuthorizedByPasscode) {
-            send({ t: 'elevation-relaunching', unattended: true });
-            toast('Gözetimsiz erişim yetkisiyle yönetici izni doğrudan onaylandı. RüzgarDesk yönetici olarak yeniden başlatılıyor...', 6000);
-            setTimeout(() => {
-              if (isElectron && RD.relaunchElevated) RD.relaunchElevated();
-            }, 600);
-            break;
-          }
-          if (elevationRequesterId) elevationRequesterId.textContent = connectedPeerId || 'Uzak Operatör';
-          if (elevationModal) elevationModal.classList.add('active');
-        }
-        break;
-      case 'elevation-declined':
-        if (!isHost) toast('Karşı taraf yönetici izni talebini reddetti.');
-        break;
       case 'elevation-relaunching':
-        if (payload && payload.unattended) {
-          toast('Gözetimsiz erişim yetkisiyle yönetici izni doğrudan onaylandı. Karşı bilgisayar yönetici olarak yeniden başlatılıyor...', 8000);
-        } else {
-          toast('Karşı makine yönetici olarak yeniden başlatılıyor. Lütfen birkaç saniye sonra tekrar bağlanın...', 8000);
-        }
+        toast('Karşı bilgisayar yönetici yetkisiyle yeniden başlatılıyor. Lütfen birkaç saniye sonra tekrar bağlanın...', 8000);
         break;
       case 'input':
         handleRemoteInput(payload.e);
@@ -589,7 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { hostScreenCount = 1; hostScreenIndex = 0; }
       }
       send({ t: 'screens', count: hostScreenCount, index: hostScreenIndex });
-      send({ t: 'elevation-info', isAdmin: !!boot.isAdmin, unattended: !!(cfg.unattended || sessionAuthorizedByPasscode) });
     } catch (e) {
       console.warn('screen share failed', e);
       if (isElectron) RD.setRemoteSessionActive(false).catch(() => {});
@@ -631,32 +596,6 @@ document.addEventListener('DOMContentLoaded', () => {
     send({ t: 'end' });
     endSessionLocally();
   });
-
-  if (elevateSessionBtn) {
-    elevateSessionBtn.addEventListener('click', () => {
-      send({ t: 'request-elevation' });
-      toast('Karşı tarafa yönetici yetkisi (UAC) talebi iletildi...');
-    });
-  }
-
-  if (acceptElevationBtn) {
-    acceptElevationBtn.addEventListener('click', () => {
-      if (elevationModal) elevationModal.classList.remove('active');
-      send({ t: 'elevation-relaunching' });
-      toast('Yönetici olarak yeniden başlatılıyor...');
-      setTimeout(() => {
-        if (isElectron && RD.relaunchElevated) RD.relaunchElevated();
-      }, 600);
-    });
-  }
-
-  if (declineElevationBtn) {
-    declineElevationBtn.addEventListener('click', () => {
-      if (elevationModal) elevationModal.classList.remove('active');
-      send({ t: 'elevation-declined' });
-      toast('Yönetici izni talebi reddedildi.');
-    });
-  }
 
   if (isElectron && RD.onUpdateInstalling) {
     RD.onUpdateInstalling((info) => {
@@ -724,7 +663,6 @@ document.addEventListener('DOMContentLoaded', () => {
     chatMessagesContainer.innerHTML = `<div class="system-message"><span>${connectedPeerId} ile bağlantı kuruldu.</span></div>`;
 
     if (isHost) {
-      if (elevateSessionBtn) elevateSessionBtn.style.display = 'none';
       waitingScreenShare.style.display = 'flex';
       if (waitingText) waitingText.textContent = isElectron
         ? 'Bu bilgisayar şu anda uzaktan kontrol ediliyor.'
@@ -733,8 +671,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (spinner) spinner.style.display = 'none';
       remoteDisplayContainer.style.cursor = 'default';
     } else {
-      if (elevateSessionBtn) elevateSessionBtn.style.display = 'none';
-      send({ t: 'query-elevation' });
       remoteDisplayContainer.style.cursor = 'crosshair';
     }
 
@@ -758,8 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function endSessionLocally() {
     const wasHost = isHost;
     sessionAuthorizedByPasscode = false;
-    if (elevateSessionBtn) elevateSessionBtn.style.display = 'none';
-    if (elevationModal) elevationModal.classList.remove('active');
     if (!isHost && conn && conn.open) { releaseAllModifiers(); releaseHeldMouseButtons(); } // clear anything held on the host
     stopSessionTimers();
     stopScreenSharing();
@@ -1185,6 +1119,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (unattendedToggle) unattendedToggle.addEventListener('change', () => {
     if (unattendedToggle.checked && !myPasscodeInput.value) { toast('Gözetimsiz erişim için önce bir parola belirleyin.'); unattendedToggle.checked = false; return; }
     persistConfig({ unattended: unattendedToggle.checked, passcode: myPasscodeInput.value });
+    if (unattendedToggle.checked && !boot.isAdmin && isElectron && RD.relaunchElevated) {
+      toast('Gözetimsiz erişim yetkisi için RüzgarDesk yönetici yetkisiyle başlatılıyor...');
+      setTimeout(() => RD.relaunchElevated(), 400);
+    }
   });
 
   document.querySelectorAll('.tab-btn').forEach((btn) => {

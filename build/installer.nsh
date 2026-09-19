@@ -1,3 +1,8 @@
+!macro customInstall
+  IfSilent 0 +2
+    Exec '"$INSTDIR\RuzgarDesk.exe"'
+!macroend
+
 !macro customUnInstall
   nsExec::ExecToLog '"$SYSDIR\sc.exe" stop RuzgarDeskSecureInput'
   Sleep 1500

@@ -584,6 +584,13 @@ function registerIpc() {
     if (!mainWindow || e.sender !== mainWindow.webContents) {
       return { ok: false, error: 'Untrusted session request' };
     }
+    isRemoteSessionActive = !!active;
+    if (!active && pendingUpdateInfo) {
+      log('[updater] remote session ended; proceeding with deferred update');
+      const info = pendingUpdateInfo;
+      pendingUpdateInfo = null;
+      triggerDelayedInstall(info);
+    }
     if (!uacCompatibility) return { ok: false, error: 'UAC compatibility is not initialized' };
     return active
       ? uacCompatibility.enableForRemoteSession()
@@ -703,10 +710,53 @@ async function requestUpdateCheck(manual = false) {
   finally { updateCheckPromise = null; }
 }
 
+let isRemoteSessionActive = false;
+let pendingUpdateInfo = null;
+
+function launchRelaunchWatchdog() {
+  if (process.platform !== 'win32') return;
+  const exe = process.execPath;
+  const ps = `Start-Sleep -Seconds 10; if (-not (Get-Process RuzgarDesk -ErrorAction SilentlyContinue)) { Start-Process -FilePath '${exe}' }`;
+  try {
+    spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', ps], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true
+    }).unref();
+    log('[updater] post-install watchdog spawned');
+  } catch (e) {
+    log('[updater] could not spawn watchdog:', e.message);
+  }
+}
+
+function triggerDelayedInstall(info) {
+  if (updateInstallTimer) return;
+  const version = info && info.version ? info.version : 'new';
+  log('[updater] triggering install for version', version);
+  publishUpdaterStatus({ state: 'installing', version, message: `v${version} kurulum için hazırlanıyor; RüzgarDesk yeniden başlayacak.` });
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-installing', { version, seconds: 8 });
+  }
+  updateInstallTimer = setTimeout(() => {
+    log('[updater] invoking quitAndInstall with watchdog');
+    launchRelaunchWatchdog();
+    autoUpdater.quitAndInstall(true, true);
+  }, 8000);
+}
+
 function setupAutoUpdater() {
   if (!app.isPackaged) {
     log('[updater] skipped outside packaged app');
     publishUpdaterStatus({ state: 'disabled', message: 'Geliştirme modunda güncelleme kapalı.' });
+    return;
+  }
+
+  const isPortable = !!process.env.PORTABLE_EXECUTABLE_FILE ||
+    !!process.env.PORTABLE_EXECUTABLE_DIR ||
+    path.basename(process.execPath).toLowerCase().includes('portable');
+  if (isPortable) {
+    log('[updater] running as portable, automatic NSIS overwrite disabled');
+    publishUpdaterStatus({ state: 'available', message: 'Yeni sürüm mevcut (taşınabilir sürüm web sitesinden indirilebilir).' });
     return;
   }
 
@@ -741,18 +791,14 @@ function setupAutoUpdater() {
   autoUpdater.on('update-downloaded', (info) => {
     if (updateInstallTimer) return;
     const version = info && info.version ? info.version : 'new';
-    log('[updater] downloaded version', version, '- restarting to install');
-    publishUpdaterStatus({ state: 'installing', version, message: `v${version} kurulum için hazırlanıyor; RüzgarDesk yeniden başlayacak.` });
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('update-installing', { version, seconds: 8 });
+    log('[updater] downloaded version', version);
+    if (isRemoteSessionActive) {
+      log('[updater] remote session is currently active; postponing install until session ends');
+      pendingUpdateInfo = info;
+      publishUpdaterStatus({ state: 'installing', version, message: `v${version} hazır (oturum sonlandığında kurulacak).` });
+      return;
     }
-
-    // Give the renderer enough time to notify the connected operator. The
-    // forced-run flag starts RuzgarDesk again after the silent NSIS update.
-    updateInstallTimer = setTimeout(() => {
-      log('[updater] invoking quitAndInstall');
-      autoUpdater.quitAndInstall(true, true);
-    }, 8000);
+    triggerDelayedInstall(info);
   });
   autoUpdater.on('error', (err) => {
     log('[updater][ERROR]', err && err.stack ? err.stack : String(err));
