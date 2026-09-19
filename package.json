@@ -9,6 +9,8 @@
     "server": "node server.js",
     "start": "electron .",
     "dev": "electron . --dev",
+    "generate:icons": "node build/generate-icon.js",
+    "build:mac-helper": "swiftc -O -target arm64-apple-macos11.0 electron/macInputAgent.swift -o build/macInputHelper-arm64 && swiftc -O -target x86_64-apple-macos11.0 electron/macInputAgent.swift -o build/macInputHelper-x86_64 && lipo -create -output build/macInputHelper build/macInputHelper-arm64 build/macInputHelper-x86_64 && rm -f build/macInputHelper-arm64 build/macInputHelper-x86_64 && cp build/macInputHelper electron/macInputHelper",
     "dist": "electron-builder --win --x64",
     "dist:win": "electron-builder --win --x64",
     "dist:mac": "electron-builder --mac",
@@ -53,33 +55,25 @@
     },
     "mac": {
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        }
+        "dmg",
+        "zip"
       ],
       "category": "public.app-category.utilities",
-      "icon": "build/icon.png",
-      "hardenedRuntime": true,
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
+      "darkModeSupport": true,
       "extendInfo": {
         "NSCameraUsageDescription": "RuzgarDesk uzaktan baglanti icin kamera izni kullanabilir.",
         "NSMicrophoneUsageDescription": "RuzgarDesk uzaktan erisimde ses aktarimi icin mikrofon izni gereklidir.",
         "NSScreenCaptureUsageDescription": "RuzgarDesk masaustunuzu uzaktan erisime acmak ve paylasmak icin Ekran Kaydi iznine ihtiyac duyar."
       },
       "extraResources": [
+        {
+          "from": "build/macInputHelper",
+          "to": "macInputHelper"
+        },
         {
           "from": "electron/macInputAgent.swift",
           "to": "macInputAgent.swift"

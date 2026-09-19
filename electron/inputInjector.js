@@ -304,6 +304,7 @@ class InputInjector {
     const candidates = [
       path.join(process.resourcesPath || '', 'macInputHelper'),
       path.join(__dirname, 'macInputHelper'),
+      path.join(__dirname, '..', 'build', 'macInputHelper'),
       path.join(process.resourcesPath || '', 'macInputAgent.swift'),
       path.join(__dirname, 'macInputAgent.swift')
     ];
@@ -326,8 +327,15 @@ class InputInjector {
       if (isSwiftScript) {
         this.ps = spawn('swift', [target], { stdio: ['pipe', 'pipe', 'pipe'] });
       } else {
+        try { fs.chmodSync(target, 0o755); } catch (e) {}
         this.ps = spawn(target, [], { stdio: ['pipe', 'pipe', 'pipe'] });
       }
+
+      this.ps.on('error', (err) => {
+        this.log('[injector][ERROR] macOS input helper process error: ' + err.message);
+        this.ps = null;
+        this.ready = false;
+      });
 
       this.ps.stdout.on('data', (d) => {
         if (d.toString().includes('RD_READY')) {

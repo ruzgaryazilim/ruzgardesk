@@ -54,6 +54,14 @@ function log(...args) {
   } catch (e) {}
 }
 
+process.on('uncaughtException', (err) => {
+  log('[main][FATAL] uncaughtException:', err && err.stack ? err.stack : String(err));
+});
+
+process.on('unhandledRejection', (reason) => {
+  log('[main][WARN] unhandledRejection:', reason && reason.stack ? reason.stack : String(reason));
+});
+
 // ---------------------------------------------------------------------------
 // Config (persisted in userData)
 // ---------------------------------------------------------------------------

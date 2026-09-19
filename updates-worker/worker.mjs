@@ -39,8 +39,8 @@ async function resolveRequest(url, env) {
   if (path === '/download' || path.startsWith('/download/')) {
     const name = stripPrefix(path, '/download/');
 
-    // Surumden bagimsiz kisayollar: /download/setup, /download/portable, /download/mac
-    const alias = /^(setup|portable|mac|mac-arm64|mac-x64)$/i.exec(name);
+    // Surumden bagimsiz kisayollar: /download/setup, /download/portable, /download/mac, /download/dmg
+    const alias = /^(setup|portable|mac|mac-arm64|mac-x64|dmg)$/i.exec(name);
     if (alias) {
       const version = await latestVersion(env);
       if (!version) return null;
@@ -48,9 +48,9 @@ async function resolveRequest(url, env) {
       let key;
       if (a === 'setup') key = `RuzgarDesk-Setup-${version}.exe`;
       else if (a === 'portable') key = `RuzgarDesk-Portable-${version}.exe`;
-      else if (a === 'mac-arm64') key = `RuzgarDesk-${version}-mac-arm64.zip`;
-      else if (a === 'mac-x64') key = `RuzgarDesk-${version}-mac-x64.zip`;
-      else key = `RuzgarDesk-${version}-mac.zip`;
+      else if (a === 'mac-x64') key = `RuzgarDesk-${version}-x64.dmg`;
+      else if (a === 'mac-arm64' || a === 'dmg' || a === 'mac') key = `RuzgarDesk-${version}-arm64.dmg`;
+      else key = `RuzgarDesk-${version}-arm64.dmg`;
       return { key, attachment: true, immutable: false };
     }
 
