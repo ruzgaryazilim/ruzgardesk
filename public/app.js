@@ -209,6 +209,26 @@ document.addEventListener('DOMContentLoaded', () => {
     createPeer(digitsOnly(cfg.deskId) || makeId());
   }
 
+  let peerReconnectTimer = null;
+  function schedulePeerReconnect(delay = 3000) {
+    clearTimeout(peerReconnectTimer);
+    peerReconnectTimer = setTimeout(() => {
+      if (sessionAlive()) return;
+      if (!peer || peer.destroyed) {
+        createPeer(digitsOnly(cfg.deskId) || makeId());
+        return;
+      }
+      if (peer.disconnected) {
+        try {
+          peer.reconnect();
+        } catch (e) {
+          try { peer.destroy(); } catch (e2) {}
+          createPeer(digitsOnly(cfg.deskId) || makeId());
+        }
+      }
+    }, delay);
+  }
+
   function createPeer(id) {
     const opts = { debug: 1, config: { iceServers: ICE } };
     const host = (cfg.peerHost || '').trim();
@@ -221,9 +241,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setStatus('pinging', 'Sunucuya bağlanılıyor...');
     try { peer = new Peer(id, opts); }
-    catch (e) { console.error('peer create failed', e); setStatus('pinging', 'Başlatılamadı'); return; }
+    catch (e) { console.error('peer create failed', e); setStatus('pinging', 'Başlatılamadı'); schedulePeerReconnect(5000); return; }
 
     peer.on('open', (openId) => {
+      clearTimeout(peerReconnectTimer);
       myDeskDigits = openId;
       myDeskId = fmtId(openId);
       persistConfig({ deskId: openId });
@@ -236,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     peer.on('call', onIncomingCall);
     peer.on('disconnected', () => {
       setStatus('pinging', 'Yeniden bağlanıyor...');
-      try { peer.reconnect(); } catch (e) {}
+      schedulePeerReconnect(2000);
     });
     peer.on('error', onPeerError);
   }
@@ -259,7 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (type === 'network' || type === 'server-error' || type === 'socket-error' || type === 'socket-closed') {
-      setStatus('pinging', 'Sunucuya ulaşılamıyor');
+      setStatus('pinging', 'Sunucuya ulaşılamıyor, yeniden deneniyor...');
+      schedulePeerReconnect(4000);
       return;
     }
     if (type === 'browser-incompatible') toast('Tarayıcı/motor WebRTC desteklemiyor.');

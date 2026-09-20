@@ -61,7 +61,8 @@ async function resolveRequest(url, env) {
   // --- electron-updater ---
   const name = stripPrefix(path, '/updates/');
   if (!UPDATE_FILE.test(name)) return null;
-  return { key: name, attachment: false, immutable: name !== 'latest.yml' };
+  const isManifest = name === 'latest.yml' || name === 'latest-mac.yml';
+  return { key: name, attachment: false, immutable: !isManifest };
 }
 
 export default {
@@ -86,7 +87,7 @@ export default {
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Disposition, ETag');
 
-    if (target.key === 'latest.yml') {
+    if (target.key === 'latest.yml' || target.key === 'latest-mac.yml') {
       headers.set('Content-Type', 'text/yaml; charset=utf-8');
     } else {
       headers.set('Content-Type', 'application/octet-stream');
